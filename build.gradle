@@ -1,0 +1,90 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+}
+
+plugins {
+    id "com.diffplug.eclipse.apt" version "3.22.0"
+    id "com.github.johnrengelman.shadow" version "6.0.0"
+    id "application"
+    id "java"
+}
+
+allprojects {
+    version "0.1"
+    group "br.com.clean.arch"
+    apply plugin: 'application'
+
+
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    dependencies {
+        annotationProcessor "io.micronaut:micronaut-inject-java:${micronautVersion}"
+        compile "io.micronaut:micronaut-inject:${micronautVersion}"
+    }
+
+    mainClassName = "${projectMainClass}"
+
+    java {
+        sourceCompatibility = JavaVersion.toVersion('11')
+        targetCompatibility = JavaVersion.toVersion('11')
+    }
+
+}
+
+subprojects {
+    apply plugin: 'application'
+
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.compilerArgs.addAll([
+                '-parameters',
+                // enables incremental compilation
+                '-Amicronaut.processing.incremental=true',
+                '-Amicronaut.processing.annotations=br.com.clean.arch.*',
+                "-Amicronaut.processing.group=$project.group",
+                "-Amicronaut.processing.module=$project.name",
+        ])
+    }
+
+
+    configurations {
+        developmentOnly
+        runtimeClasspath {
+            extendsFrom developmentOnly
+        }
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    shadowJar {
+        mergeServiceFiles()
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    tasks.withType(JavaExec) {
+        classpath += configurations.developmentOnly
+        jvmArgs('-XX:TieredStopAtLevel=1', '-Dcom.sun.management.jmxremote')
+        if (gradle.startParameter.continuous) {
+            systemProperties(
+                    'micronaut.io.watch.restart': 'true',
+                    'micronaut.io.watch.enabled': 'true',
+                    "micronaut.io.watch.paths": "src/main"
+            )
+        }
+    }
+}

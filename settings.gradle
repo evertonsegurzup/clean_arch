@@ -1,0 +1,6 @@
+rootProject.name = "clean_arch"
+
+include 'domain'
+include 'micronaut-application'
+//include 'spring-application'
+//include 'quarkus-application'
